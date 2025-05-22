@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sound Map WebApp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #map-container {
+      position: relative;
+      display: inline-block;
+      border: 2px solid #ccc;
+    }
+    #map {
+      max-width: 100%;
+      display: block;
+    }
+    .marker {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: red;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+    }
+    #infoBox {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+      display: none;
+    }
+    #infoBox img {
+      max-width: 200px;
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sound Map WebApp</h1>
+  <input type="file" id="imageUpload" accept="image/*" />
+  <div id="map-container">
+    <img id="map" src="" alt="Map" />
+  </div>
+  <div id="infoBox">
+    <strong>Related Image:</strong>
+    <img id="relatedImage" src="" alt="Related" />
+  </div>
+
+  <script>
+    const imageInput = document.getElementById("imageUpload");
+    const mapImg = document.getElementById("map");
+    const mapContainer = document.getElementById("map-container");
+    const infoBox = document.getElementById("infoBox");
+    const relatedImage = document.getElementById("relatedImage");
+
+    const markers = []; // Store marker data {x, y, audioUrl, imageUrl}
+
+    imageInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          mapImg.src = e.target.result;
+          mapImg.onload = () => {
+            mapImg.width = mapImg.naturalWidth;
+            mapImg.height = mapImg.naturalHeight;
+          };
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    mapContainer.addEventListener("click", async (e) => {
+      if (!mapImg.src) return;
+
+      const rect = mapImg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const audioFile = await getAudioFile();
+      if (!audioFile) return;
+      const audioUrl = URL.createObjectURL(audioFile);
+
+      const imageFile = await getImageFile();
+      if (!imageFile) return;
+      const imageUrl = URL.createObjectURL(imageFile);
+
+      markers.push({ x, y, audioUrl, imageUrl });
+      addMarker(x, y, audioUrl, imageUrl);
+    });
+
+    function addMarker(x, y, audioUrl, imageUrl) {
+      const marker = document.createElement("div");
+      marker.classList.add("marker");
+      marker.style.left = `${x}px`;
+      marker.style.top = `${y}px`;
+      marker.onclick = (e) => {
+        e.stopPropagation();
+        const audio = new Audio(audioUrl);
+        audio.play();
+        relatedImage.src = imageUrl;
+        infoBox.style.display = "block";
+      };
+      mapContainer.appendChild(marker);
+    }
+
+    function getAudioFile() {
+      return new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "audio/*";
+        input.onchange = () => {
+          resolve(input.files[0]);
+        };
+        input.click();
+      });
+    }
+
+    function getImageFile() {
+      return new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = () => {
+          resolve(input.files[0]);
+        };
+        input.click();
+      });
+    }
+  </script>
+</body>
+</html>
